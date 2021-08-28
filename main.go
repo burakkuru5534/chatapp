@@ -1,40 +1,42 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
-	"time"
+	"context"
+	"example.com/m/auth"
+	"example.com/m/config"
+	"example.com/m/repository"
+	"flag"
+	"log"
+	"net/http"
+
 )
 
-// Get this package if it's missing.
-// go get -u github.com/lib/p/ go get -u github.com/lib/pq
+var addr = flag.String("addr", ":8080", "http server address")
+var ctx = context.Background()
 
 func main() {
-	fmt.Println("connecting")
-	// these details match the docker-compose.yml file.
-	postgresInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		"postgres", 5432, "user", "mypassword", "user")
-	db, err := sql.Open("postgres", postgresInfo)
-	if err != nil {
-		panic(err)
-	}
+	flag.Parse()
+
+	config.CreateRedisClient()
+	db := config.InitDB()
 	defer db.Close()
 
-	start := time.Now()
-	for db.Ping() != nil {
-		if start.After(start.Add(10 * time.Second)) {
-			fmt.Println("failed to connect after 10 secs.")
-			break
-		}
-	}
-	fmt.Println("connected:", db.Ping() == nil)
-	_, err = db.Exec(`DROP TABLE IF EXISTS COMPANY;`)
-	if err != nil {
-		panic(err)
-	}
-	_, err = db.Exec(`CREATE TABLE COMPANY (ID INT PRIMARY KEY NOT NULL, NAME text);`)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("table company is created")
+	userRepository := &repository.UserRepository{Db: db}
+
+	wsServer := NewWebsocketServer(&repository.RoomRepository{Db: db}, userRepository)
+	go wsServer.Run()
+
+	api := &API{UserRepository: userRepository}
+
+	http.HandleFunc("/ws", auth.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		ServeWs(wsServer, w, r)
+	}))
+
+	http.HandleFunc("/api/login", api.HandleLogin)
+	http.HandleFunc("/api/deletealluser", api.DeleteAllUsers)
+
+	fs := http.FileServer(http.Dir("./public"))
+	http.Handle("/", fs)
+
+	log.Fatal(http.ListenAndServe(*addr, nil))
 }
