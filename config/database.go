@@ -2,8 +2,6 @@ package config
 
 import (
 	"database/sql"
-	"example.com/m/auth"
-	"github.com/google/uuid"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -40,11 +38,19 @@ func InitDB() *sql.DB {
 		log.Fatal("%q: %s\n", err, sqlStmt)
 	}
 
-	password, _ := auth.GeneratePassword("password")
+	sqlStmt = ` 
+    CREATE TABLE IF NOT EXISTS user_friend (
+        id VARCHAR(255) NOT NULL PRIMARY KEY,
+        user_id bigint not null,
+        friend_id bigint not null,
 
-	sqlStmt = `INSERT into user (id, name, username, password) VALUES
-                    ('` + uuid.New().String() + `', 'john', 'john','` + password + `')`
-
+         constraint fk_user_friend_user foreign key (user_id)
+        references user (id) on update cascade on delete no action,
+        
+        constraint fk_user_friend_friend foreign key (friend_id)
+        references user (id) on update cascade on delete no action
+    );
+    `
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
 		log.Fatal("%q: %s\n", err, sqlStmt)

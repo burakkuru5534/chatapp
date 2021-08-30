@@ -32,8 +32,11 @@ func main() {
 		ServeWs(wsServer, w, r)
 	}))
 
+	http.HandleFunc("/api/register", api.RegisterUser)
 	http.HandleFunc("/api/login", api.HandleLogin)
+	http.HandleFunc("/api/friend/add/{id:[0-9]+}", api.AddFriend)
 	http.HandleFunc("/api/deletealluser", api.DeleteAllUsers)
+	http.HandleFunc("/api/friends/{id:[0-9]+}", api.ShowUserFriends)
 
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)

@@ -35,6 +35,16 @@ func (repo *UserRepository) AddUser(user models.User) {
 	checkErr(err)
 }
 
+func (repo *UserRepository) CreateUser(id string, name string, username string, password string) {
+
+	stmt, err := repo.Db.Prepare("INSERT INTO user(id, name, username, password) values(?,?, ?,?)")
+	checkErr(err)
+
+	_, err = stmt.Exec(id, name, username, password)
+	checkErr(err)
+
+}
+
 func (repo *UserRepository) RemoveUser(user models.User) {
 	stmt, err := repo.Db.Prepare("DELETE FROM user WHERE id = ?")
 	checkErr(err)
@@ -93,3 +103,4 @@ func (repo *UserRepository) FindUserByUsername(username string) *User {
 
 	return &user
 }
+
