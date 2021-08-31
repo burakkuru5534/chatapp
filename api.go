@@ -7,7 +7,6 @@ import (
 	"example.com/m/config"
 	"example.com/m/repository"
 	"example.com/m/response"
-	"fmt"
 	"github.com/google/uuid"
 	"net/http"
 	"strconv"
@@ -15,8 +14,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
-
-	"github.com/go-chi/chi"
 )
 type API struct {
 	UserRepository *repository.UserRepository
@@ -61,7 +58,7 @@ func (api *API) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if !isUserNameExist {
 		hashedPassword, err := cmn.HashPasswd(password)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			api.ResponseFail(w,"hash password error")
 			return
 
 		}
@@ -70,7 +67,7 @@ func (api *API) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		api.ResponseSuccess(w, id)
 		return
 	}else {
-		http.Error(w, "username allready taken by other users", http.StatusUnauthorized)
+		api.ResponseFail(w,"username already exist error")
 		return
 	}
 
@@ -82,30 +79,28 @@ func (api *API) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	// Try to decode the JSON request to a LoginUser
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		api.ResponseFail(w,"request body decode error")
 		return
 	}
 
 	// Find the user in the database by username
 	dbUser := api.UserRepository.FindUserByUsername(user.Username)
 	if dbUser == nil {
-		returnErrorResponse(w)
+		api.ResponseFail(w,"find user by username error")
 		return
 	}
 
 	// Check if the passwords match
-	ok, err := auth.ComparePassword(user.Password, dbUser.Password)
-
-	if !ok || err != nil {
-		returnErrorResponse(w)
+	ok:= cmn.CheckPass(dbUser.Password,user.Password)
+	if !ok {
+		api.ResponseFail(w,"password not correct")
 		return
 	}
 
 	// Create a JWT
 	token, err := auth.CreateJWTToken(dbUser)
-
 	if err != nil {
-		returnErrorResponse(w)
+		api.ResponseFail(w,"token create error")
 		return
 	}
 
@@ -175,62 +170,62 @@ func (api *API) DeleteAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	_, err:= db.Exec("delete from user")
 	if err != nil {
-		returnErrorResponse(w)
+		api.ResponseFail(w,"delete all user db exec error")
 		return
 	}
+
+	api.ResponseSuccess(w, "All Users deleted with Success")
 
 
 }
 func (api *API) ShowUserFriends(w http.ResponseWriter, r *http.Request) {
-	userID := StrToInt64(chi.URLParam(r, "id"))
+	userID := r.FormValue("id")
 
 	db := config.InitDB()
 	defer db.Close()
 
-	_, err := db.Exec("select * from user where id in (select friend_id from user_friend where user_id = $1)",userID)
-	if err != nil {
-		returnErrorResponse(w)
-		return
-	}
+	userFriends := api.UserRepository.GetAllFriends(userID)
+
+	api.ResponseSuccess(w, userFriends)
 
 
 }
+
 func (api *API) AddFriend(w http.ResponseWriter, r *http.Request) {
 
-	userID := StrToInt64(chi.URLParam(r, "id"))
+	userID := r.FormValue("id")
 
 	friendUserName := r.FormValue("fUserName")
-	var isExist bool
-	isExist = false
-	db := config.InitDB()
-	defer db.Close()
-
-	row := db.QueryRow("select id from user where username = $1  ", friendUserName)
-	if row != nil {
-		isExist = true
-	}
-	var friendID int64
-	err := row.Scan(friendID)
-	if err != nil {
-		returnErrorResponse(w)
+	friendUser := api.UserRepository.FindUserByUsername(friendUserName)
+	friendUserID := friendUser.GetId()
+	isAlreadyFriend := api.UserRepository.IsAlreadyFriend(userID,friendUserID)
+	if  friendUserID != "" && !isAlreadyFriend{
+		id := uuid.New().String()
+		api.UserRepository.AddFriend(id,friendUserID,userID)
+		api.ResponseSuccess(w,"Friend Added with Success")
+		return
+	}else {
+		api.ResponseFail(w, "friend already exist")
 		return
 	}
 
-	if isExist {
-
-		sq := fmt.Sprintf(`insert into user_friend (user_id,friend_id) values (%d,%d)`,userID,friendID)
-
-		_, err = db.Exec(sq)
-		if err != nil {
-			returnErrorResponse(w)
-			return
-		}
-
-	}
 }
 
 func (api *API) ResponseSuccess(w http.ResponseWriter, data interface{}) {
 	ar, err := response.NewResponse(true, "", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = ar.Send(w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (api *API) ResponseFail(w http.ResponseWriter, msg string) {
+	ar, err := response.NewResponse(false, msg, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

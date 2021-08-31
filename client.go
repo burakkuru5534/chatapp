@@ -46,13 +46,16 @@ type Client struct {
 	send     chan []byte
 	ID       uuid.UUID `json:"id"`
 	Name     string    `json:"name"`
+	UserName     string    `json:"username"`
 	rooms    map[*Room]bool
 }
 
-func newClient(conn *websocket.Conn, wsServer *WsServer, name string) *Client {
+
+func newClient(conn *websocket.Conn, wsServer *WsServer, name string, username string) *Client {
 	return &Client{
 		ID:       uuid.New(),
 		Name:     name,
+		UserName:     username,
 		conn:     conn,
 		wsServer: wsServer,
 		send:     make(chan []byte, 256),
@@ -139,8 +142,9 @@ func (client *Client) disconnect() {
 func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 
 	name, ok := r.URL.Query()["name"]
+	username, ok := r.URL.Query()["username"]
 
-	if !ok || len(name[0]) < 1 {
+	if !ok || len(name[0]) < 1 || len(username[0]) < 1 {
 		log.Println("Url Param 'name' is missing")
 		return
 	}
@@ -151,7 +155,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := newClient(conn, wsServer, name[0])
+	client := newClient(conn, wsServer, name[0], username[0])
 
 	go client.writePump()
 	go client.readPump()
@@ -289,4 +293,7 @@ func (client *Client) GetId() string {
 
 func (client *Client) GetName() string {
 	return client.Name
+}
+func (client *Client) GetUserName() string {
+	return client.UserName
 }

@@ -16,6 +16,7 @@ const defaulExpireTime = 604800 // 1 week
 type Claims struct {
 	ID string `json:"id"`
 	Name string `json:"name"`
+	UserName string `json:"username"`
 	jwt.StandardClaims
 }
 
@@ -26,6 +27,11 @@ func (c *Claims) GetId() string {
 func (c *Claims) GetName() string {
 	return c.Name
 }
+
+func (c *Claims) GetUserName() string {
+	return c.UserName
+}
+
 
 // CreateJWTToken generates a JWT signed token for for the given user
 func CreateJWTToken(user models.User) (string, error) {

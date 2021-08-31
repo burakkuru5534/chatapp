@@ -23,6 +23,11 @@ func (user *User) GetName() string {
 	return user.Name
 }
 
+func (user *User) GetUserName() string {
+	return user.Username
+}
+
+
 type UserRepository struct {
 	Db *sql.DB
 }
@@ -32,6 +37,14 @@ func (repo *UserRepository) AddUser(user models.User) {
 	checkErr(err)
 
 	_, err = stmt.Exec(user.GetId(), user.GetName())
+	checkErr(err)
+}
+
+func (repo *UserRepository) AddFriend(id string, friendID string, userID string) {
+	stmt, err := repo.Db.Prepare("INSERT INTO user_friend(id, friend_id, user_id) values(?,?,?)")
+	checkErr(err)
+
+	_, err = stmt.Exec(id, friendID, userID)
 	checkErr(err)
 }
 
@@ -87,6 +100,44 @@ func (repo *UserRepository) GetAllUsers() []models.User {
 
 	return users
 }
+
+func (repo *UserRepository) GetAllFriends(userID string) []models.User {
+
+	rows, err := repo.Db.Query("SELECT id, name, username FROM user where id in (select friend_id from user_friend where user_id = ?)",userID)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	var users []models.User
+	defer rows.Close()
+	for rows.Next() {
+		var user User
+		rows.Scan(&user.Id, &user.Name, &user.Username)
+		users = append(users, &user)
+	}
+
+	return users
+}
+
+
+func (repo *UserRepository) IsAlreadyFriend(userID string, friendID string) bool {
+
+	rows, err := repo.Db.Query("SELECT id FROM user_friend where user_id = ? and friend_id = ?",userID, friendID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var id string
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&id)
+		if id != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
 
 func (repo *UserRepository) FindUserByUsername(username string) *User {
 
