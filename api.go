@@ -52,6 +52,27 @@ type AnonUser struct {
 }
 type contextKey string
 const UserContextKey = contextKey("user")
+type Claims struct {
+	ID string `json:"id"`
+	Name string `json:"name"`
+	UserName string `json:"username"`
+	jwt.StandardClaims
+}
+
+const hmacSecret = "SecretValueReplaceThis"
+
+func (c *Claims) GetId() string {
+	return c.ID
+}
+
+func (c *Claims) GetName() string {
+	return c.Name
+}
+
+func (c *Claims) GetUserName() string {
+	return c.UserName
+}
+
 
 func (api *API) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
@@ -180,10 +201,26 @@ func (api *API) HandleLogin(w http.ResponseWriter, r *http.Request) {
 //	api.ResponseSuccess(w, at)
 //}
 func (api *API) DeleteAllUsers(w http.ResponseWriter, r *http.Request) {
+	token, _ := r.URL.Query()["bearer"]
+	user, err := ValidateToken(token[0])
+	if err != nil {
+		api.ResponseFail(w,"wrong token")
+		return
+	}
+
+	userName := user.GetName()
+
+	if userName != "admin" {
+
+		api.ResponseFail(w,"only admin can access this api")
+		return
+	}
+
+
 	db := config.InitDB()
 	defer db.Close()
 
-	_, err:= db.Exec("delete from user")
+	_, err = db.Exec("delete from user")
 	if err != nil {
 		api.ResponseFail(w,"delete all user db exec error")
 		return
@@ -194,7 +231,14 @@ func (api *API) DeleteAllUsers(w http.ResponseWriter, r *http.Request) {
 
 }
 func (api *API) ShowUserFriends(w http.ResponseWriter, r *http.Request) {
-	userID := r.FormValue("id")
+	token, _ := r.URL.Query()["bearer"]
+	user, err := ValidateToken(token[0])
+	if err != nil {
+		api.ResponseFail(w,"wrong token")
+		return
+	}
+
+	userID := user.GetId()
 
 	db := config.InitDB()
 	defer db.Close()
@@ -235,7 +279,14 @@ func (api *API) AddFriend(w http.ResponseWriter, r *http.Request) {
 
 }
 func (api *API) ShowUsersPostedMessagesToFriend(w http.ResponseWriter, r *http.Request) {
-	userID := r.FormValue("id")
+	token, _ := r.URL.Query()["bearer"]
+	user, err := ValidateToken(token[0])
+	if err != nil {
+		api.ResponseFail(w,"wrong token")
+		return
+	}
+
+	userID := user.GetId()
 	toID := r.FormValue("toID")
 
 	db := config.InitDB()
@@ -245,9 +296,15 @@ func (api *API) ShowUsersPostedMessagesToFriend(w http.ResponseWriter, r *http.R
 
 	api.ResponseSuccess(w, userSentMessagesToSomeOne)
 }
-
 func (api *API) ShowUsersReceivedMessagesFromFriend(w http.ResponseWriter, r *http.Request) {
-	userID := r.FormValue("id")
+	token, _ := r.URL.Query()["bearer"]
+	user, err := ValidateToken(token[0])
+	if err != nil {
+		api.ResponseFail(w,"wrong token")
+		return
+	}
+
+	userID := user.GetId()
 	toID := r.FormValue("toID")
 
 	db := config.InitDB()
@@ -345,23 +402,3 @@ func ValidateToken(tokenString string) (models.User, error) {
 	}
 }
 
-type Claims struct {
-	ID string `json:"id"`
-	Name string `json:"name"`
-	UserName string `json:"username"`
-	jwt.StandardClaims
-}
-
-const hmacSecret = "SecretValueReplaceThis"
-
-func (c *Claims) GetId() string {
-	return c.ID
-}
-
-func (c *Claims) GetName() string {
-	return c.Name
-}
-
-func (c *Claims) GetUserName() string {
-	return c.UserName
-}
