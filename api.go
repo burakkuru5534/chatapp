@@ -5,12 +5,17 @@ import (
 	"example.com/m/auth"
 	"example.com/m/cmn"
 	"example.com/m/config"
+	"example.com/m/models"
 	"example.com/m/repository"
 	"example.com/m/response"
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
@@ -41,6 +46,12 @@ type DbHandle struct {
 type Logger struct {
 	zerolog.Logger
 }
+type AnonUser struct {
+	Id string `json:"id"`
+	Name string `json:"name"`
+}
+type contextKey string
+const UserContextKey = contextKey("user")
 
 func (api *API) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
@@ -49,7 +60,11 @@ func (api *API) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var isUserNameExist bool
 	isUserNameExist = true
 	// Find the user in the database by username
-	dbUser := api.UserRepository.FindUserByUsername(username)
+	dbUser, err := api.UserRepository.FindUserByUsername(username,"register")
+	if err != nil {
+		api.ResponseFail(w,"wrong username")
+		return
+	}
 	if dbUser == nil {
 		isUserNameExist = false
 	}
@@ -192,10 +207,20 @@ func (api *API) ShowUserFriends(w http.ResponseWriter, r *http.Request) {
 }
 func (api *API) AddFriend(w http.ResponseWriter, r *http.Request) {
 
-	userID := r.FormValue("id")
+	token, _ := r.URL.Query()["bearer"]
+	user, err := ValidateToken(token[0])
+	if err != nil {
+		api.ResponseFail(w,"wrong token")
+		return
+	}
 
+	userID := user.GetId()
 	friendUserName := r.FormValue("fUserName")
-	friendUser := api.UserRepository.FindUserByUsername(friendUserName)
+	friendUser, err := api.UserRepository.FindUserByUsername(friendUserName,"add-friend")
+	if err != nil {
+		api.ResponseFail(w,"wrong friend name")
+		return
+	}
 	friendUserID := friendUser.GetId()
 	isAlreadyFriend := api.UserRepository.IsAlreadyFriend(userID,friendUserID)
 	if  friendUserID != "" && !isAlreadyFriend{
@@ -273,4 +298,70 @@ func StrToInt64(aval string) int64 {
 		return 0
 	}
 	return i
+}
+
+func printContextInternals(ctx interface{}, inner bool) {
+	contextValues := reflect.ValueOf(ctx).Elem()
+	contextKeys := reflect.TypeOf(ctx).Elem()
+
+	if !inner {
+		fmt.Printf("\nFields for %s.%s\n", contextKeys.PkgPath(), contextKeys.Name())
+	}
+
+	if contextKeys.Kind() == reflect.Struct {
+		for i := 0; i < contextValues.NumField(); i++ {
+			reflectValue := contextValues.Field(i)
+			reflectValue = reflect.NewAt(reflectValue.Type(), unsafe.Pointer(reflectValue.UnsafeAddr())).Elem()
+
+			reflectField := contextKeys.Field(i)
+
+			if reflectField.Name == "Context" {
+				printContextInternals(reflectValue.Interface(), true)
+			} else {
+				fmt.Printf("field name: %+v\n", reflectField.Name)
+				fmt.Printf("value: %+v\n", reflectValue.Interface())
+			}
+		}
+	} else {
+		fmt.Printf("context is empty (int)\n")
+	}
+}
+
+func ValidateToken(tokenString string) (models.User, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte(hmacSecret), nil
+	})
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	} else {
+		return nil, err
+	}
+}
+
+type Claims struct {
+	ID string `json:"id"`
+	Name string `json:"name"`
+	UserName string `json:"username"`
+	jwt.StandardClaims
+}
+
+const hmacSecret = "SecretValueReplaceThis"
+
+func (c *Claims) GetId() string {
+	return c.ID
+}
+
+func (c *Claims) GetName() string {
+	return c.Name
+}
+
+func (c *Claims) GetUserName() string {
+	return c.UserName
 }

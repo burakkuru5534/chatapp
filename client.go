@@ -297,7 +297,10 @@ func (client *Client) GetUserName() string {
 
 func (client *Client) SaveMessage(message Message, repo repository.UserRepository) {
 
-	toUser := repo.FindUserByUsername(message.Target.Name)
+	toUser, err := repo.FindUserByUsername(message.Target.Name,"save-message")
+	if err != nil {
+		log.Fatal(err)
+	}
 	repo.SaveMessage(message.Sender.GetId(),toUser.GetId(),message.Message)
 
 }

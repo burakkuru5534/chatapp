@@ -34,7 +34,10 @@ func main() {
 
 	http.HandleFunc("/api/register", api.RegisterUser)
 	http.HandleFunc("/api/login", api.HandleLogin)
-	http.HandleFunc("/api/friend/add", api.AddFriend)
+	http.HandleFunc("/api/friend/add", auth.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		api.AddFriend(w,r)
+	}))
+	//http.HandleFunc("/api/friend/add", api.AddFriend)
 	http.HandleFunc("/api/deletealluser", api.DeleteAllUsers)
 	http.HandleFunc("/api/friends", api.ShowUserFriends)
 	http.HandleFunc("/api/user/sended/messages", api.ShowUsersPostedMessagesToFriend)

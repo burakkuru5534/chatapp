@@ -146,7 +146,7 @@ func (repo *UserRepository) IsAlreadyFriend(userID string, friendID string) bool
 	return false
 }
 
-func (repo *UserRepository) FindUserByUsername(username string) *User {
+func (repo *UserRepository) FindUserByUsername(username string, typ string) (*User, error) {
 
 	row := repo.Db.QueryRow("SELECT id, name, username FROM user where username = ? LIMIT 1", username)
 
@@ -154,13 +154,19 @@ func (repo *UserRepository) FindUserByUsername(username string) *User {
 
 	if err := row.Scan(&user.Id, &user.Name, &user.Username); err != nil {
 		if err == sql.ErrNoRows {
-			return nil
+			if typ == "register" {
+				return nil, nil
+			}else {
+				return nil, err
+			}
 		}
-		panic(err)
+		return nil,err
+
 	}
 
-	return &user
+	return &user, nil
 }
+
 
 func (repo *UserRepository) GetUserByUserName(username string) *User {
 
