@@ -170,8 +170,13 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 	}
 
 	message.Sender = client
-	var userRepo *repository.UserRepository
-	client.SaveMessage(userRepo,message.Sender.GetId(),message.Target.ID.String(),message.Message)
+
+	if message.Action == "send-message" {
+
+		var userRepo repository.UserRepository
+		userRepo.Db = config.InitDB()
+		client.SaveMessage(message,userRepo)
+	}
 
 	switch message.Action {
 	case SendMessageAction:
@@ -298,11 +303,9 @@ func (client *Client) GetUserName() string {
 	return client.UserName
 }
 
-func (client *Client) SaveMessage(repo *repository.UserRepository,userID string, toID string, content string) {
+func (client *Client) SaveMessage(message Message, repo repository.UserRepository) {
 
-	id := uuid.New().String()
-	stmt, _ := repo.Db.Prepare("INSERT INTO msg(id, content, user_id, to_id) values(?,?, ?,?)")
-
-	_, _ = stmt.Exec(id, content, userID, toID)
+	toUser := repo.FindUserByUsername(message.Target.Name)
+	repo.SaveMessage(message.Sender.GetId(),toUser.GetId(),message.Message)
 
 }

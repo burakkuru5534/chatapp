@@ -39,10 +39,10 @@ type UserRepository struct {
 }
 
 func (repo *UserRepository) AddUser(user models.User) {
-	stmt, err := repo.Db.Prepare("INSERT INTO user(id, name) values(?,?)")
+	stmt, err := repo.Db.Prepare("INSERT INTO user(id, name, username) values(?,?,?)")
 	checkErr(err)
 
-	_, err = stmt.Exec(user.GetId(), user.GetName())
+	_, err = stmt.Exec(user.GetId(), user.GetName(), user.GetName())
 	checkErr(err)
 }
 
@@ -147,11 +147,11 @@ func (repo *UserRepository) IsAlreadyFriend(userID string, friendID string) bool
 
 func (repo *UserRepository) FindUserByUsername(username string) *User {
 
-	row := repo.Db.QueryRow("SELECT id, name, username, password FROM user where username = ? LIMIT 1", username)
+	row := repo.Db.QueryRow("SELECT id, name, username FROM user where username = ? LIMIT 1", username)
 
 	var user User
 
-	if err := row.Scan(&user.Id, &user.Name, &user.Username, &user.Password); err != nil {
+	if err := row.Scan(&user.Id, &user.Name, &user.Username); err != nil {
 		if err == sql.ErrNoRows {
 			return nil
 		}
