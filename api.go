@@ -84,7 +84,7 @@ func (api *API) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find the user in the database by username
-	dbUser := api.UserRepository.FindUserByUsername(user.Username)
+	dbUser := api.UserRepository.GetUserByUserName(user.Username)
 	if dbUser == nil {
 		api.ResponseFail(w,"find user by username error")
 		return

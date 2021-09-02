@@ -171,19 +171,11 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 
 	message.Sender = client
 
-	if message.Action == "send-message" {
-
+	switch message.Action {
+	case SendMessageAction:
 		var userRepo repository.UserRepository
 		userRepo.Db = config.InitDB()
 		client.SaveMessage(message,userRepo)
-	}
-
-	switch message.Action {
-	case SendMessageAction:
-		roomID := message.Target.GetId()
-		if room := client.wsServer.findRoomByID(roomID); room != nil {
-			room.broadcast <- &message
-		}
 
 	case JoinRoomAction:
 		client.handleJoinRoomMessage(message)

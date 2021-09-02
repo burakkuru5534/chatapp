@@ -161,6 +161,22 @@ func (repo *UserRepository) FindUserByUsername(username string) *User {
 	return &user
 }
 
+func (repo *UserRepository) GetUserByUserName(username string) *User {
+
+	row := repo.Db.QueryRow("SELECT id, name, username, password FROM user where username = ? LIMIT 1", username)
+
+	var user User
+
+	if err := row.Scan(&user.Id, &user.Name, &user.Username, &user.Password); err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		panic(err)
+	}
+
+	return &user
+}
+
 func (repo *UserRepository) SaveMessage (userID string, toID string, content string) {
 
 	id := uuid.New().String()
@@ -169,6 +185,7 @@ func (repo *UserRepository) SaveMessage (userID string, toID string, content str
 
 	_, err = stmt.Exec(id, content, userID, toID)
 	checkErr(err)
+	repo.Db.Close()
 
 }
 

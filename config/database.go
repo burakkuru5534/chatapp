@@ -57,7 +57,6 @@ func InitDB() *sql.DB {
 	}
 
 	sqlStmt = ` 
- drop table msg;
     CREATE TABLE IF NOT EXISTS msg (
         id VARCHAR(255) NOT NULL PRIMARY KEY,
         content VARCHAR(255) not null,
