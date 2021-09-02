@@ -190,7 +190,6 @@ func (api *API) ShowUserFriends(w http.ResponseWriter, r *http.Request) {
 
 
 }
-
 func (api *API) AddFriend(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.FormValue("id")
@@ -210,6 +209,32 @@ func (api *API) AddFriend(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+func (api *API) ShowUsersPostedMessagesToFriend(w http.ResponseWriter, r *http.Request) {
+	userID := r.FormValue("id")
+	toID := r.FormValue("toID")
+
+	db := config.InitDB()
+	defer db.Close()
+
+	userSentMessagesToSomeOne := api.UserRepository.GetUserSentMessagesByToID(userID,toID)
+
+	api.ResponseSuccess(w, userSentMessagesToSomeOne)
+}
+
+func (api *API) ShowUsersReceivedMessagesFromFriend(w http.ResponseWriter, r *http.Request) {
+	userID := r.FormValue("id")
+	toID := r.FormValue("toID")
+
+	db := config.InitDB()
+	defer db.Close()
+
+	userSentMessagesFromSomeOne := api.UserRepository.GetUserReceivedMessagesByToID(userID,toID)
+
+	api.ResponseSuccess(w, userSentMessagesFromSomeOne)
+}
+
+
+
 
 func (api *API) ResponseSuccess(w http.ResponseWriter, data interface{}) {
 	ar, err := response.NewResponse(true, "", data)
@@ -223,7 +248,6 @@ func (api *API) ResponseSuccess(w http.ResponseWriter, data interface{}) {
 		return
 	}
 }
-
 func (api *API) ResponseFail(w http.ResponseWriter, msg string) {
 	ar, err := response.NewResponse(false, msg, nil)
 	if err != nil {

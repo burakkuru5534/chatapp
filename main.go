@@ -37,6 +37,8 @@ func main() {
 	http.HandleFunc("/api/friend/add", api.AddFriend)
 	http.HandleFunc("/api/deletealluser", api.DeleteAllUsers)
 	http.HandleFunc("/api/friends", api.ShowUserFriends)
+	http.HandleFunc("/api/user/sended/messages", api.ShowUsersPostedMessagesToFriend)
+	http.HandleFunc("/api/user/received/messages", api.ShowUsersReceivedMessagesFromFriend)
 
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)

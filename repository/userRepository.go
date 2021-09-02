@@ -5,15 +5,20 @@ import (
 	"example.com/m/models"
 	"github.com/google/uuid"
 	"log"
-
 )
 
-
 type User struct {
-	Id string `json:"id"`
-	Name string `json:"name"`
+	Id       string `json:"id"`
+	Name     string `json:"name"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type UserMessages struct {
+	Id      string `json:"id"`
+	Content string `json:"content"`
+	UserID  string `json:"user_id"`
+	ToID    string `json:"to_id"`
 }
 
 func (user *User) GetId() string {
@@ -28,11 +33,9 @@ func (user *User) GetUserName() string {
 	return user.Username
 }
 
-func (user *User) SaveMessage()  {
+func (user *User) SaveMessage() {
 	user.SaveMessage()
 }
-
-
 
 type UserRepository struct {
 	Db *sql.DB
@@ -109,7 +112,7 @@ func (repo *UserRepository) GetAllUsers() []models.User {
 
 func (repo *UserRepository) GetAllFriends(userID string) []models.User {
 
-	rows, err := repo.Db.Query("SELECT id, name, username FROM user where id in (select friend_id from user_friend where user_id = ?)",userID)
+	rows, err := repo.Db.Query("SELECT id, name, username FROM user where id in (select friend_id from user_friend where user_id = ?)", userID)
 
 	if err != nil {
 		log.Fatal(err)
@@ -125,10 +128,9 @@ func (repo *UserRepository) GetAllFriends(userID string) []models.User {
 	return users
 }
 
-
 func (repo *UserRepository) IsAlreadyFriend(userID string, friendID string) bool {
 
-	rows, err := repo.Db.Query("SELECT id FROM user_friend where user_id = ? and friend_id = ?",userID, friendID)
+	rows, err := repo.Db.Query("SELECT id FROM user_friend where user_id = ? and friend_id = ?", userID, friendID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -143,7 +145,6 @@ func (repo *UserRepository) IsAlreadyFriend(userID string, friendID string) bool
 
 	return false
 }
-
 
 func (repo *UserRepository) FindUserByUsername(username string) *User {
 
@@ -177,7 +178,7 @@ func (repo *UserRepository) GetUserByUserName(username string) *User {
 	return &user
 }
 
-func (repo *UserRepository) SaveMessage (userID string, toID string, content string) {
+func (repo *UserRepository) SaveMessage(userID string, toID string, content string) {
 
 	id := uuid.New().String()
 	stmt, err := repo.Db.Prepare("INSERT INTO msg(id, content, user_id, to_id) values(?,?, ?,?)")
@@ -189,3 +190,38 @@ func (repo *UserRepository) SaveMessage (userID string, toID string, content str
 
 }
 
+func (repo *UserRepository) GetUserSentMessagesByToID(userID string, toID string) []UserMessages {
+
+	rows, err := repo.Db.Query("SELECT id, content, user_id, to_id FROM msg where user_id = ? and to_id = ?", userID, toID)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var userMessages []UserMessages
+
+	defer rows.Close()
+	for rows.Next() {
+		var userMessage UserMessages
+		rows.Scan(&userMessage.Id, &userMessage.Content,&userMessage.UserID, &userMessage.ToID)
+		userMessages = append(userMessages, userMessage)
+	}
+
+	return userMessages
+}
+
+func (repo *UserRepository) GetUserReceivedMessagesByToID(userID string, toID string) *UserMessages {
+
+	row := repo.Db.QueryRow("SELECT id, content, user_id, to_id FROM msg where user_id = ? and to_id = ?", toID, userID )
+
+	var userMessages UserMessages
+
+	if err := row.Scan(&userMessages.Id, &userMessages.Content, &userMessages.UserID, &userMessages.ToID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		panic(err)
+	}
+
+	return &userMessages
+}
