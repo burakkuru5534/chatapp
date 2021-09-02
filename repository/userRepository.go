@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"example.com/m/models"
+	"github.com/google/uuid"
 	"log"
 
 )
@@ -26,6 +27,11 @@ func (user *User) GetName() string {
 func (user *User) GetUserName() string {
 	return user.Username
 }
+
+func (user *User) SaveMessage()  {
+	user.SaveMessage()
+}
+
 
 
 type UserRepository struct {
@@ -153,5 +159,16 @@ func (repo *UserRepository) FindUserByUsername(username string) *User {
 	}
 
 	return &user
+}
+
+func (repo *UserRepository) SaveMessage (userID string, toID string, content string) {
+
+	id := uuid.New().String()
+	stmt, err := repo.Db.Prepare("INSERT INTO msg(id, content, user_id, to_id) values(?,?, ?,?)")
+	checkErr(err)
+
+	_, err = stmt.Exec(id, content, userID, toID)
+	checkErr(err)
+
 }
 

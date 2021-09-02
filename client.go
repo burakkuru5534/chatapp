@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"example.com/m/config"
 	"example.com/m/models"
+	"example.com/m/repository"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
-
 
 	"github.com/gorilla/websocket"
 )
@@ -46,16 +46,15 @@ type Client struct {
 	send     chan []byte
 	ID       uuid.UUID `json:"id"`
 	Name     string    `json:"name"`
-	UserName     string    `json:"username"`
+	UserName string    `json:"username"`
 	rooms    map[*Room]bool
 }
-
 
 func newClient(conn *websocket.Conn, wsServer *WsServer, name string, username string) *Client {
 	return &Client{
 		ID:       uuid.New(),
 		Name:     name,
-		UserName:     username,
+		UserName: username,
 		conn:     conn,
 		wsServer: wsServer,
 		send:     make(chan []byte, 256),
@@ -142,9 +141,8 @@ func (client *Client) disconnect() {
 func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 
 	name, ok := r.URL.Query()["name"]
-	username, ok := r.URL.Query()["username"]
 
-	if !ok || len(name[0]) < 1 || len(username[0]) < 1 {
+	if !ok || len(name[0]) < 1 {
 		log.Println("Url Param 'name' is missing")
 		return
 	}
@@ -155,7 +153,7 @@ func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := newClient(conn, wsServer, name[0], username[0])
+	client := newClient(conn, wsServer, name[0], name[0])
 
 	go client.writePump()
 	go client.readPump()
@@ -172,6 +170,8 @@ func (client *Client) handleNewMessage(jsonMessage []byte) {
 	}
 
 	message.Sender = client
+	var userRepo *repository.UserRepository
+	client.SaveMessage(userRepo,message.Sender.GetId(),message.Target.ID.String(),message.Message)
 
 	switch message.Action {
 	case SendMessageAction:
@@ -296,4 +296,13 @@ func (client *Client) GetName() string {
 }
 func (client *Client) GetUserName() string {
 	return client.UserName
+}
+
+func (client *Client) SaveMessage(repo *repository.UserRepository,userID string, toID string, content string) {
+
+	id := uuid.New().String()
+	stmt, _ := repo.Db.Prepare("INSERT INTO msg(id, content, user_id, to_id) values(?,?, ?,?)")
+
+	_, _ = stmt.Exec(id, content, userID, toID)
+
 }
