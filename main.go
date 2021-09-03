@@ -41,6 +41,10 @@ func main() {
 		api.AddFriend(w,r)
 	}))
 
+	http.HandleFunc("/api/friend/ban", auth.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		api.BanFriend(w,r)
+	}))
+
 	http.HandleFunc("/api/friends", auth.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		api.ShowUserFriends(w,r)
 	}))
