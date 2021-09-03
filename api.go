@@ -316,12 +316,19 @@ func (api *API) ShowUsersPostedMessagesToFriend(w http.ResponseWriter, r *http.R
 	}
 
 	userID := user.GetId()
-	toID := r.FormValue("toID")
+	toName := r.FormValue("toName")
+
+	toUser, err := api.UserRepository.FindUserByUsername(toName,"show-sended-messages")
+	if err != nil {
+		api.ResponseFail(w,"wrong user name")
+		return
+	}
+
 
 	db := config.InitDB()
 	defer db.Close()
 
-	userSentMessagesToSomeOne := api.UserRepository.GetUserSentMessagesByToID(userID,toID)
+	userSentMessagesToSomeOne := api.UserRepository.GetUserSentMessagesByToID(userID,toUser.GetId())
 
 	api.ResponseSuccess(w, userSentMessagesToSomeOne)
 }
@@ -334,12 +341,17 @@ func (api *API) ShowUsersReceivedMessagesFromFriend(w http.ResponseWriter, r *ht
 	}
 
 	userID := user.GetId()
-	toID := r.FormValue("toID")
+	fromName := r.FormValue("fromName")
+	fromUser, err := api.UserRepository.FindUserByUsername(fromName,"show-received-messages")
+	if err != nil {
+		api.ResponseFail(w,"wrong user name")
+		return
+	}
 
 	db := config.InitDB()
 	defer db.Close()
 
-	userSentMessagesFromSomeOne := api.UserRepository.GetUserReceivedMessagesByToID(userID,toID)
+	userSentMessagesFromSomeOne := api.UserRepository.GetUserReceivedMessagesByToID(userID,fromUser.GetId())
 
 	api.ResponseSuccess(w, userSentMessagesFromSomeOne)
 }
