@@ -8,6 +8,16 @@ Technology:
 - docker
 - docker-compose
 
+* How Its working
+
+Room,msg,user,userfriend tables were created with sqlite. With the room table, the channel information that users will message is kept. Users and passwords registered in the user table were hashed and kept. The user friend table was created to manage who users can message and who they block. The msg table was used to hold messages and associate them with users.
+
+Registering, logging in is done by sending a request to the relevant APIs via postman.
+
+A simple frontend design has been created for websocket communication. Here, we open a chat window by entering the token we obtained from the login api and the username of the person we want to msg. Then we send our message.
+
+In order to add friends, block someone, see messages, see the friend list, we send requests to the relevant APIs via postman.
+
 API's
 
 * Register
