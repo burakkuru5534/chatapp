@@ -18,6 +18,8 @@ A simple frontend design has been created for websocket communication. Here, we 
 
 In order to add friends, block someone, see messages, see the friend list, we send requests to the relevant APIs via postman.
 
+for dockerize this project: we could use $docker-compose build, $docker-compose up -d 
+
 API's
 
 * Register
@@ -96,6 +98,19 @@ EndPoint: http://localhost:8080/api/user/sended/messages?token=eyJhbGciOiJIUzI1N
 
 - Attributes: we should use our token when we send a request to this api to see received messages and also fromName.
 QueryStringParemeters: ?fromName=sampletoname&token=ourtoken
+
+
+![Alt text](/home/burak/Desktop/chatscreens/register.png?raw=true "Register")
+![Alt text](/home/burak/Desktop/chatscreens/login.png?raw=true "Login")
+![Alt text](/home/burak/Desktop/chatscreens/addfriendwithsuccess.png?raw=true "AddFriend")
+![Alt text](/home/burak/Desktop/chatscreens/samefriendadderrormessage.png?raw=true "SameFriendError")
+![Alt text](/home/burak/Desktop/chatscreens/userfriends.png?raw=true "UserFriends")
+![Alt text](/home/burak/Desktop/chatscreens/tokenandfriend.png?raw=true "TokenAndFriendName")
+![Alt text](/home/burak/Desktop/chatscreens/TESTMESSAGE2.png?raw=true "TestMessage")
+![Alt text](/home/burak/Desktop/chatscreens/DBrecordsformessages.png?raw=true "DbRecordsForMessages")
+![Alt text](/home/burak/Desktop/chatscreens/userenterformessage.png?raw=true "UserEnterForMessage")
+![Alt text](/home/burak/Desktop/chatscreens/sendmessageprivateroombw.png?raw=true "SendMessagePrivateRoom")
+
 
 
 
