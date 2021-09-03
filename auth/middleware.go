@@ -28,7 +28,7 @@ func (user *AnonUser) GetName() string {
 
 func AuthMiddleware(f http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, tok := r.URL.Query()["bearer"]
+		token, tok := r.URL.Query()["token"]
 		name, nok := r.URL.Query()["name"]
 
 		if tok && len(token) == 1 {

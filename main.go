@@ -23,12 +23,8 @@ func main() {
 
 	userRepository := &repository.UserRepository{Db: db}
 
-	wsServer := NewWebsocketServer(&repository.RoomRepository{Db: db}, userRepository)
-	go wsServer.Run()
-
-
 	http.HandleFunc("/ws", auth.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		ServeWs(wsServer, w, r)
+		ServeWs( w, r)
 	}))
 
 	api := &API{UserRepository: userRepository}

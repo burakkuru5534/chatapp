@@ -138,14 +138,44 @@ func (client *Client) disconnect() {
 }
 
 // ServeWs handles websocket requests from clients requests.
-func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
+func ServeWs(w http.ResponseWriter, r *http.Request) {
 
 	name, ok := r.URL.Query()["name"]
+	token, tok := r.URL.Query()["token"]
+
+	if len(token) <1 || !tok {
+		log.Println("token is missing")
+		return
+	}
 
 	if !ok || len(name[0]) < 1 {
 		log.Println("Url Param 'name' is missing")
 		return
 	}
+
+	db := config.InitDB()
+
+	userRepository := &repository.UserRepository{Db: db}
+
+	toUser, err := userRepository.FindUserByUsername(name[0],"ws-register")
+	if err != nil {
+		log.Println("to user not exist")
+		return
+	}
+
+	fromUser, err := ValidateToken(token[0])
+	if err != nil {
+		log.Println("validate token error")
+		return
+	}
+
+	fromUserID := fromUser.GetId()
+	id := uuid.New().String()
+
+	userRepository.AddFriend(id,toUser.GetId(),fromUserID)
+
+	wsServer := NewWebsocketServer(&repository.RoomRepository{Db: db}, userRepository,fromUserID)
+	go wsServer.Run()
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

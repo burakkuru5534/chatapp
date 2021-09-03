@@ -201,7 +201,7 @@ func (api *API) HandleLogin(w http.ResponseWriter, r *http.Request) {
 //	api.ResponseSuccess(w, at)
 //}
 func (api *API) DeleteAllUsers(w http.ResponseWriter, r *http.Request) {
-	token, _ := r.URL.Query()["bearer"]
+	token, _ := r.URL.Query()["token"]
 	user, err := ValidateToken(token[0])
 	if err != nil {
 		api.ResponseFail(w,"wrong token")
@@ -231,7 +231,7 @@ func (api *API) DeleteAllUsers(w http.ResponseWriter, r *http.Request) {
 
 }
 func (api *API) ShowUserFriends(w http.ResponseWriter, r *http.Request) {
-	token, _ := r.URL.Query()["bearer"]
+	token, _ := r.URL.Query()["token"]
 	user, err := ValidateToken(token[0])
 	if err != nil {
 		api.ResponseFail(w,"wrong token")
@@ -251,7 +251,7 @@ func (api *API) ShowUserFriends(w http.ResponseWriter, r *http.Request) {
 }
 func (api *API) AddFriend(w http.ResponseWriter, r *http.Request) {
 
-	token, _ := r.URL.Query()["bearer"]
+	token, _ := r.URL.Query()["token"]
 	user, err := ValidateToken(token[0])
 	if err != nil {
 		api.ResponseFail(w,"wrong token")
@@ -278,8 +278,37 @@ func (api *API) AddFriend(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+func (api *API) BanFriend(w http.ResponseWriter, r *http.Request) {
+
+	token, _ := r.URL.Query()["token"]
+	user, err := ValidateToken(token[0])
+	if err != nil {
+		api.ResponseFail(w,"wrong token")
+		return
+	}
+
+	userID := user.GetId()
+	friendUserName := r.FormValue("fUserName")
+	friendUser, err := api.UserRepository.FindUserByUsername(friendUserName,"ban-friend")
+	if err != nil {
+		api.ResponseFail(w,"wrong friend name")
+		return
+	}
+	friendUserID := friendUser.GetId()
+	isAlreadyFriend := api.UserRepository.IsAlreadyFriend(userID,friendUserID)
+	if  friendUserID != "" && isAlreadyFriend{
+		id := uuid.New().String()
+		api.UserRepository.AddFriend(id,friendUserID,userID)
+		api.ResponseSuccess(w,"Friend Added with Success")
+		return
+	}else {
+		api.ResponseFail(w, "friend already exist")
+		return
+	}
+
+}
 func (api *API) ShowUsersPostedMessagesToFriend(w http.ResponseWriter, r *http.Request) {
-	token, _ := r.URL.Query()["bearer"]
+	token, _ := r.URL.Query()["token"]
 	user, err := ValidateToken(token[0])
 	if err != nil {
 		api.ResponseFail(w,"wrong token")
@@ -297,7 +326,7 @@ func (api *API) ShowUsersPostedMessagesToFriend(w http.ResponseWriter, r *http.R
 	api.ResponseSuccess(w, userSentMessagesToSomeOne)
 }
 func (api *API) ShowUsersReceivedMessagesFromFriend(w http.ResponseWriter, r *http.Request) {
-	token, _ := r.URL.Query()["bearer"]
+	token, _ := r.URL.Query()["token"]
 	user, err := ValidateToken(token[0])
 	if err != nil {
 		api.ResponseFail(w,"wrong token")
@@ -314,8 +343,6 @@ func (api *API) ShowUsersReceivedMessagesFromFriend(w http.ResponseWriter, r *ht
 
 	api.ResponseSuccess(w, userSentMessagesFromSomeOne)
 }
-
-
 
 
 func (api *API) ResponseSuccess(w http.ResponseWriter, data interface{}) {

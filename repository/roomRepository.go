@@ -35,6 +35,7 @@ func (repo *RoomRepository) AddRoom(room models.Room) {
 	checkErr(err)
 }
 
+
 func (repo *RoomRepository) FindRoomByName(name string) models.Room {
 
 	row := repo.Db.QueryRow("SELECT id, name, private FROM room where name = ? LIMIT 1", name)
@@ -52,8 +53,3 @@ func (repo *RoomRepository) FindRoomByName(name string) models.Room {
 
 }
 
-func checkErr(err error) {
-	if err != nil {
-		panic(err)
-	}
-}

@@ -7,10 +7,10 @@ type User interface {
 }
 
 type UserRepository interface {
-	AddUser(user User)
+	//AddUser(user User)
 	AddFriend(id string, friendID string, userID string)
 	CreateUser(id string, name string, username string, password string)
-	RemoveUser(user User)
+	//RemoveUser(user User)
 	FindUserById(ID string) User
 	GetAllUsers() []User
 	GetAllFriends(userID string) []User

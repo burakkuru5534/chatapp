@@ -41,19 +41,31 @@ type UserRepository struct {
 	Db *sql.DB
 }
 
-func (repo *UserRepository) AddUser(user models.User) {
-	stmt, err := repo.Db.Prepare("INSERT INTO user(id, name, username) values(?,?,?)")
-	checkErr(err)
-
-	_, err = stmt.Exec(user.GetId(), user.GetName(), user.GetName())
-	checkErr(err)
-}
+//func (repo *UserRepository) AddUser(user models.User) {
+//	stmt, err := repo.Db.Prepare("INSERT INTO user(id, name, username) values(?,?,?)")
+//	checkErr(err)
+//
+//	isAlreadyExist := repo.IsAlreadyUserExist(user.GetName())
+//
+//	if !isAlreadyExist {
+//		_, err = stmt.Exec(user.GetId(), user.GetName(), user.GetName())
+//		checkErr(err)
+//	}
+//}
 
 func (repo *UserRepository) AddFriend(id string, friendID string, userID string) {
 	stmt, err := repo.Db.Prepare("INSERT INTO user_friend(id, friend_id, user_id) values(?,?,?)")
 	checkErr(err)
 
 	_, err = stmt.Exec(id, friendID, userID)
+	checkErr(err)
+}
+
+func (repo *UserRepository) BanFriend(friendID string, userID string) {
+	stmt, err := repo.Db.Prepare("DELETE FROM user_friend WHERE user_id = ? and friend_id = ?")
+	checkErr(err)
+
+	_, err = stmt.Exec(userID, friendID)
 	checkErr(err)
 }
 
@@ -130,7 +142,7 @@ func (repo *UserRepository) GetAllFriends(userID string) []models.User {
 
 func (repo *UserRepository) IsAlreadyFriend(userID string, friendID string) bool {
 
-	rows, err := repo.Db.Query("SELECT id FROM user_friend where user_id = ? and friend_id = ?", userID, friendID)
+	rows, err := repo.Db.Query("SELECT id FROM user_friend where user_id = ? and friend_id = ? limit 1", userID, friendID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,6 +157,25 @@ func (repo *UserRepository) IsAlreadyFriend(userID string, friendID string) bool
 
 	return false
 }
+
+func (repo *UserRepository) IsAlreadyUserExist(userName string) bool {
+
+	rows, err := repo.Db.Query("SELECT id FROM USER where name = ?", userName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var id string
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&id)
+		if id != "" {
+			return true
+		}
+	}
+
+	return false
+}
+
 
 func (repo *UserRepository) FindUserByUsername(username string, typ string) (*User, error) {
 
@@ -187,12 +218,16 @@ func (repo *UserRepository) GetUserByUserName(username string) *User {
 func (repo *UserRepository) SaveMessage(userID string, toID string, content string) {
 
 	id := uuid.New().String()
+
 	stmt, err := repo.Db.Prepare("INSERT INTO msg(id, content, user_id, to_id) values(?,?, ?,?)")
 	checkErr(err)
 
 	_, err = stmt.Exec(id, content, userID, toID)
 	checkErr(err)
 	repo.Db.Close()
+
+
+
 
 }
 
@@ -230,4 +265,10 @@ func (repo *UserRepository) GetUserReceivedMessagesByToID(userID string, toID st
 	}
 
 	return &userMessages
+}
+
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

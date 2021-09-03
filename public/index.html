@@ -32,9 +32,15 @@
             <div class="col-12 form" v-if="!ws">
                 <div class="input-group">
                     <input
+                            v-model="user.token"
+                            class="form-control name"
+                            placeholder="Please fill in your token"
+                            @keyup.enter.exact="connect"
+                    ></input>
+                    <input
                             v-model="user.name"
                             class="form-control name"
-                            placeholder="Please fill in your (nick)name"
+                            placeholder="Please fill in your friend name"
                             @keyup.enter.exact="connect"
                     ></input>
                     <div class="input-group-append">

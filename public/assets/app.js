@@ -6,7 +6,8 @@ var app = new Vue({
         roomInput: null,
         rooms: [],
         user: {
-            name: ""
+            name: "",
+            token:""
         },
         users: [],
         initialReconnectDelay: 1000,
@@ -20,7 +21,7 @@ var app = new Vue({
             this.connectToWebsocket();
         },
         connectToWebsocket() {
-            this.ws = new WebSocket(this.serverUrl + "?name=" + this.user.name);
+            this.ws = new WebSocket(this.serverUrl + "?token=" + this.user.token + "&name=" + this.user.name);
             this.ws.addEventListener('open', (event) => { this.onWebsocketOpen(event) });
             this.ws.addEventListener('message', (event) => { this.handleNewMessage(event) });
             this.ws.addEventListener('close', (event) => { this.onWebsocketClose(event) });

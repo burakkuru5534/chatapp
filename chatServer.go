@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"example.com/m/config"
 	"example.com/m/models"
-	"log"
-
 	"github.com/google/uuid"
-
+	"log"
 )
 
 const PubSubGeneralChannel = "general"
@@ -23,7 +21,7 @@ type WsServer struct {
 }
 
 // NewWebsocketServer creates a new WsServer type
-func NewWebsocketServer(roomRepository models.RoomRepository, userRepository models.UserRepository) *WsServer {
+func NewWebsocketServer(roomRepository models.RoomRepository, userRepository models.UserRepository, userID string) *WsServer {
 	wsServer := &WsServer{
 		clients:        make(map[*Client]bool),
 		register:       make(chan *Client),
@@ -34,7 +32,7 @@ func NewWebsocketServer(roomRepository models.RoomRepository, userRepository mod
 	}
 
 	// Add users from database to server
-	wsServer.users = userRepository.GetAllUsers()
+	wsServer.users = userRepository.GetAllFriends(userID)
 
 	return wsServer
 }
@@ -58,7 +56,7 @@ func (server *WsServer) Run() {
 
 func (server *WsServer) registerClient(client *Client) {
 	// Add user to the repo
-	server.userRepository.AddUser(client)
+	//server.userRepository.AddUser(client)
 
 	// Publish user in PubSub
 	server.publishClientJoined(client)
@@ -72,7 +70,7 @@ func (server *WsServer) unregisterClient(client *Client) {
 		delete(server.clients, client)
 
 		// Remove user from repo
-		server.userRepository.RemoveUser(client)
+		//server.userRepository.RemoveUser(client)
 
 		// Publish user left in PubSub
 		server.publishClientLeft(client)
